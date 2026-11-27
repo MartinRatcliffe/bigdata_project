@@ -1,7 +1,18 @@
 -- Vue sur tous les CSV bruts de S3, sans les copier
+CREATE OR REPLACE SECRET onyxia (
+  TYPE s3,
+  PROVIDER credential_chain,
+  REGION 'us-east-1',
+  ENDPOINT 's3.seaweedfs.adm.adaltas.cloud',
+  URL_STYLE 'path'
+);
+
+-- Bucket de l'utilisateur : $BUCKET si défini, sinon son namespace Onyxia (user-xxx)
+SET VARIABLE bucket = coalesce(nullif(getenv('BUCKET'), ''), getenv('KUBERNETES_NAMESPACE'));
+
 CREATE OR REPLACE VIEW bronze AS
 SELECT * FROM read_csv(
-  's3://user-m-ratcliffe-ece/raw/football-data/*.csv',
+  's3://' || getvariable('bucket') || '/raw/football-data/*.csv',
   union_by_name = true,   -- colonnes différentes selon les saisons : on les aligne par nom
   all_varchar   = true,   -- tout en texte : on regarde le brut sans conversion
   filename      = true    -- ajoute une colonne avec le nom du fichier source
